@@ -1,0 +1,329 @@
+import React, { useState } from 'react';
+import { Camera, Award, Users, Gift, Star, TrendingUp, Share2, Bell, Calendar } from 'lucide-react';
+
+export default function BarbershopLoyaltyApp() {
+  const [activeTab, setActiveTab] = useState('home');
+  const [clientData] = useState({
+    name: "Marcus",
+    visits: 7,
+    streak: 4,
+    points: 340,
+    tier: "Gold",
+    nextReward: 160,
+    referrals: 2
+  });
+
+  const [announcements] = useState([
+    { id: 1, title: "New Barber Alert!", text: "Marcus joins the team next Monday. Book early!", date: "Today", badge: "New" },
+    { id: 2, title: "Holiday Hours", text: "We'll be open 9am-3pm on Thanksgiving weekend", date: "2 days ago", badge: null }
+  ]);
+
+  const [showcase] = useState([
+    { id: 1, barber: "Brandon", style: "Low Fade + Design", likes: 23, image: "🔥" },
+    { id: 2, barber: "Alex", style: "Classic Taper", likes: 18, image: "✂️" },
+    { id: 3, barber: "Jorge", style: "Burst Fade", likes: 31, image: "⭐" }
+  ]);
+
+  const HomeView = () => (
+    <div className="space-y-6">
+      {/* User Status Card */}
+      <div className="bg-gradient-to-br from-red-600 via-red-500 to-red-600 rounded-2xl p-6 text-white shadow-lg">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <p className="text-red-100 text-sm">Welcome back,</p>
+            <h2 className="text-2xl font-bold">{clientData.name}</h2>
+            <p className="text-red-100 text-sm mt-1">{clientData.tier} Member</p>
+          </div>
+          <div className="bg-white/20 rounded-full p-3">
+            <Award className="w-6 h-6" />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-4 mt-6">
+          <div className="bg-white/10 rounded-lg p-3 backdrop-blur">
+            <p className="text-xs text-red-100">Total Visits</p>
+            <p className="text-2xl font-bold">{clientData.visits}</p>
+          </div>
+          <div className="bg-white/10 rounded-lg p-3 backdrop-blur">
+            <p className="text-xs text-red-100">Current Streak</p>
+            <p className="text-2xl font-bold">{clientData.streak} 🔥</p>
+          </div>
+          <div className="bg-white/10 rounded-lg p-3 backdrop-blur">
+            <p className="text-xs text-red-100">Points</p>
+            <p className="text-2xl font-bold">{clientData.points}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Next Reward Progress */}
+      <div className="bg-white rounded-xl p-5 shadow-md border border-gray-100">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-800">Next Reward</h3>
+          <Gift className="w-5 h-5 text-red-600" />
+        </div>
+        <div className="bg-gray-200 rounded-full h-3 mb-2">
+          <div 
+            className="bg-gradient-to-r from-red-600 to-red-500 h-3 rounded-full transition-all"
+            style={{ width: `${(clientData.points / (clientData.points + clientData.nextReward)) * 100}%` }}
+          />
+        </div>
+        <p className="text-sm text-gray-600">{clientData.nextReward} points to free cut</p>
+      </div>
+
+      {/* Streak Bonus */}
+      <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-5 border border-red-200">
+        <div className="flex items-start gap-3">
+          <div className="text-3xl">🔥</div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-800 mb-1">Streak Bonus Active!</h3>
+            <p className="text-sm text-gray-600">You're on a {clientData.streak}-visit streak. Book within 30 days to keep it going and earn 2x points!</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Announcements */}
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <Bell className="w-5 h-5" />
+          Shop Updates
+        </h3>
+        <div className="space-y-3">
+          {announcements.map(announcement => (
+            <div key={announcement.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <div className="flex justify-between items-start mb-1">
+                <h4 className="font-medium text-gray-800">{announcement.title}</h4>
+                {announcement.badge && (
+                  <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full">{announcement.badge}</span>
+                )}
+              </div>
+              <p className="text-sm text-gray-600 mb-2">{announcement.text}</p>
+              <p className="text-xs text-gray-400">{announcement.date}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const RewardsView = () => (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl p-5 shadow-md border border-gray-100">
+        <h3 className="font-semibold text-gray-800 mb-4">Your Rewards Balance</h3>
+        <div className="text-center py-6">
+          <p className="text-5xl font-bold text-red-600 mb-2">{clientData.points}</p>
+          <p className="text-gray-600">Points Available</p>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-3">Redeem Points</h3>
+        <div className="space-y-3">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 flex justify-between items-center">
+            <div>
+              <p className="font-medium text-gray-800">Free Haircut</p>
+              <p className="text-sm text-gray-500">500 points</p>
+            </div>
+            <button className="bg-gray-100 text-gray-400 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed">
+              Need 160 more
+            </button>
+          </div>
+
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-red-200 flex justify-between items-center">
+            <div>
+              <p className="font-medium text-gray-800">$10 Off Service</p>
+              <p className="text-sm text-gray-500">300 points</p>
+            </div>
+            <button className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700">
+              Redeem
+            </button>
+          </div>
+
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-red-200 flex justify-between items-center">
+            <div>
+              <p className="font-medium text-gray-800">Premium Product</p>
+              <p className="text-sm text-gray-500">200 points</p>
+            </div>
+            <button className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700">
+              Redeem
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-5 border border-red-200">
+        <h3 className="font-semibold text-gray-800 mb-3">Earn More Points</h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Every visit</span>
+            <span className="font-medium text-gray-800">50 pts</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Maintain streak</span>
+            <span className="font-medium text-gray-800">2x multiplier</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Refer a friend</span>
+            <span className="font-medium text-gray-800">100 pts</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Leave a review</span>
+            <span className="font-medium text-gray-800">25 pts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const ReferView = () => (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-br from-red-600 via-red-500 to-red-600 rounded-2xl p-6 text-white shadow-lg">
+        <Share2 className="w-10 h-10 mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Refer Friends</h2>
+        <p className="text-red-100 mb-4">Give $15, Get 100 points when they book their first cut</p>
+        <div className="bg-white/20 rounded-lg p-4 backdrop-blur mb-4">
+          <p className="text-xs text-red-100 mb-1">Your Referral Code</p>
+          <p className="text-2xl font-bold tracking-wider">MARCUS15</p>
+        </div>
+        <button className="w-full bg-white text-red-600 py-3 rounded-lg font-medium hover:bg-red-50">
+          Share Code
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl p-5 shadow-md border border-gray-100">
+        <h3 className="font-semibold text-gray-800 mb-3">Your Referrals</h3>
+        <div className="text-center py-6">
+          <p className="text-4xl font-bold text-red-600 mb-2">{clientData.referrals}</p>
+          <p className="text-gray-600">Friends Referred</p>
+          <p className="text-sm text-gray-500 mt-2">You've earned 200 points from referrals!</p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="font-semibold text-gray-800">Recent Referrals</h3>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="font-medium text-gray-800">James R.</p>
+              <p className="text-sm text-gray-500">First visit completed</p>
+            </div>
+            <span className="text-green-600 font-medium">+100 pts</span>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="font-medium text-gray-800">Derek M.</p>
+              <p className="text-sm text-gray-500">First visit completed</p>
+            </div>
+            <span className="text-green-600 font-medium">+100 pts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const ShowcaseView = () => (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-5 border border-red-200">
+        <Camera className="w-8 h-8 text-red-600 mb-3" />
+        <h3 className="font-semibold text-gray-800 mb-2">Share Your Fresh Cut</h3>
+        <p className="text-sm text-gray-600 mb-4">Tag us and earn 25 bonus points!</p>
+        <button className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700">
+          Upload Photo
+        </button>
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-3">Recent Cuts</h3>
+        <div className="grid grid-cols-1 gap-4">
+          {showcase.map(item => (
+            <div key={item.id} className="bg-white rounded-xl p-4 shadow-md border border-gray-100">
+              <div className="flex items-start gap-4">
+                <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center text-4xl">
+                  {item.image}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-gray-800">{item.style}</p>
+                  <p className="text-sm text-gray-500 mb-2">by {item.barber}</p>
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <span className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-red-500 text-red-500" />
+                      {item.likes}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <button className="w-full bg-gray-100 text-gray-600 py-3 rounded-lg font-medium hover:bg-gray-200">
+        View All Gallery
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="max-w-md mx-auto bg-gray-50 min-h-screen">
+      {/* Header with Logo Style */}
+      <div className="bg-black px-6 py-5 sticky top-0 z-10 shadow-lg">
+        <div className="flex items-center gap-4">
+          {/* Logo Circle */}
+          <div className="relative">
+            <div className="w-14 h-14 bg-red-600 rounded-full border-4 border-black flex items-center justify-center shadow-lg">
+              <span className="text-white text-xs font-bold">LOFI</span>
+            </div>
+          </div>
+          {/* Text */}
+          <div>
+            <h1 className="text-2xl font-bold text-white tracking-wide">LOFI HAIR</h1>
+            <p className="text-xs text-gray-400 italic">by Barber Dozens</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-6 pb-24">
+        {activeTab === 'home' && <HomeView />}
+        {activeTab === 'rewards' && <RewardsView />}
+        {activeTab === 'refer' && <ReferView />}
+        {activeTab === 'showcase' && <ShowcaseView />}
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 max-w-md mx-auto">
+        <div className="flex justify-around">
+          <button 
+            onClick={() => setActiveTab('home')}
+            className={`flex flex-col items-center gap-1 ${activeTab === 'home' ? 'text-red-600' : 'text-gray-400'}`}
+          >
+            <TrendingUp className="w-6 h-6" />
+            <span className="text-xs">Home</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('rewards')}
+            className={`flex flex-col items-center gap-1 ${activeTab === 'rewards' ? 'text-red-600' : 'text-gray-400'}`}
+          >
+            <Gift className="w-6 h-6" />
+            <span className="text-xs">Rewards</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('refer')}
+            className={`flex flex-col items-center gap-1 ${activeTab === 'refer' ? 'text-red-600' : 'text-gray-400'}`}
+          >
+            <Share2 className="w-6 h-6" />
+            <span className="text-xs">Refer</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('showcase')}
+            className={`flex flex-col items-center gap-1 ${activeTab === 'showcase' ? 'text-red-600' : 'text-gray-400'}`}
+          >
+            <Camera className="w-6 h-6" />
+            <span className="text-xs">Showcase</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
