@@ -14,13 +14,65 @@
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
         }
+        .pin-input {
+            width: 50px;
+            height: 60px;
+            font-size: 24px;
+            text-align: center;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .pin-input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+        .pin-input.filled {
+            border-color: #dc2626;
+            background-color: #fef2f2;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect, useRef } = React;
+
+        // Mock user database - In production, this would be on a backend
+        const USERS_DB = {
+            '1234': {
+                name: "Michael",
+                visits: 7,
+                streak: 4,
+                points: 340,
+                tier: "Gold",
+                nextReward: 160,
+                referrals: 2,
+                phone: "(555) 123-4567"
+            },
+            '5678': {
+                name: "Keith",
+                visits: 12,
+                streak: 8,
+                points: 650,
+                tier: "Platinum",
+                nextReward: 350,
+                referrals: 5,
+                phone: "(555) 987-6543"
+            },
+            '9999': {
+                name: "Tim",
+                visits: 3,
+                streak: 2,
+                points: 150,
+                tier: "Silver",
+                nextReward: 350,
+                referrals: 0,
+                phone: "(555) 000-0000"
+            }
+        };
 
         // Lucide React icons as inline SVG components
         const TrendingUp = () => (
@@ -77,17 +129,199 @@
             </svg>
         );
 
+        const Lock = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+        );
+
+        const LogOut = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+        );
+
+        const Delete = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+                <line x1="18" y1="9" x2="12" y2="15"></line>
+                <line x1="12" y1="9" x2="18" y2="15"></line>
+            </svg>
+        );
+
+        function PinLogin({ onLogin }) {
+            const [pin, setPin] = useState(['', '', '', '']);
+            const [error, setError] = useState('');
+            const [isShaking, setIsShaking] = useState(false);
+            const inputRefs = [useRef(), useRef(), useRef(), useRef()];
+
+            useEffect(() => {
+                inputRefs[0].current?.focus();
+            }, []);
+
+            const handlePinChange = (index, value) => {
+                if (value.length > 1) {
+                    value = value.slice(-1);
+                }
+
+                if (!/^\d*$/.test(value)) return;
+
+                const newPin = [...pin];
+                newPin[index] = value;
+                setPin(newPin);
+                setError('');
+
+                if (value && index < 3) {
+                    inputRefs[index + 1].current?.focus();
+                }
+
+                if (newPin.every(digit => digit !== '') && index === 3) {
+                    const pinCode = newPin.join('');
+                    if (USERS_DB[pinCode]) {
+                        onLogin(USERS_DB[pinCode], pinCode);
+                    } else {
+                        setError('Invalid PIN. Try again.');
+                        setIsShaking(true);
+                        setTimeout(() => {
+                            setIsShaking(false);
+                            setPin(['', '', '', '']);
+                            inputRefs[0].current?.focus();
+                        }, 500);
+                    }
+                }
+            };
+
+            const handleKeyDown = (index, e) => {
+                if (e.key === 'Backspace' && !pin[index] && index > 0) {
+                    inputRefs[index - 1].current?.focus();
+                }
+            };
+
+            const handlePaste = (e) => {
+                e.preventDefault();
+                const pastedData = e.clipboardData.getData('text').slice(0, 4);
+                if (!/^\d+$/.test(pastedData)) return;
+
+                const newPin = pastedData.split('').concat(['', '', '', '']).slice(0, 4);
+                setPin(newPin);
+
+                if (newPin.every(digit => digit !== '')) {
+                    const pinCode = newPin.join('');
+                    if (USERS_DB[pinCode]) {
+                        onLogin(USERS_DB[pinCode], pinCode);
+                    } else {
+                        setError('Invalid PIN. Try again.');
+                        setIsShaking(true);
+                        setTimeout(() => {
+                            setIsShaking(false);
+                            setPin(['', '', '', '']);
+                            inputRefs[0].current?.focus();
+                        }, 500);
+                    }
+                } else {
+                    const nextEmptyIndex = newPin.findIndex(digit => digit === '');
+                    if (nextEmptyIndex !== -1) {
+                        inputRefs[nextEmptyIndex].current?.focus();
+                    }
+                }
+            };
+
+            const clearPin = () => {
+                setPin(['', '', '', '']);
+                setError('');
+                inputRefs[0].current?.focus();
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950 flex items-center justify-center p-6">
+                    <div className="w-full max-w-md">
+                        <div className="text-center mb-12">
+                            <div className="inline-block mb-6">
+                                <div className="w-20 h-20 bg-red-600 rounded-full border-4 border-white flex items-center justify-center shadow-2xl">
+                                    <span className="text-white text-lg font-bold">LOFI</span>
+                                </div>
+                            </div>
+                            <h1 className="text-4xl font-bold text-white mb-2">LOFI HAIR</h1>
+                            <p className="text-gray-400 italic">by Barber Dozens</p>
+                        </div>
+
+                        <div className="bg-white rounded-3xl p-8 shadow-2xl">
+                            <div className="text-center mb-8">
+                                <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                                    <Lock />
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-800 mb-2">Enter Your PIN</h2>
+                                <p className="text-gray-600 text-sm">Access your loyalty rewards</p>
+                            </div>
+
+                            <div className={`flex justify-center gap-4 mb-6 ${isShaking ? 'animate-shake' : ''}`}>
+                                {pin.map((digit, index) => (
+                                    <input
+                                        key={index}
+                                        ref={inputRefs[index]}
+                                        type="tel"
+                                        inputMode="numeric"
+                                        maxLength="1"
+                                        value={digit}
+                                        onChange={(e) => handlePinChange(index, e.target.value)}
+                                        onKeyDown={(e) => handleKeyDown(index, e)}
+                                        onPaste={handlePaste}
+                                        className={`pin-input ${digit ? 'filled' : ''}`}
+                                    />
+                                ))}
+                            </div>
+
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-3 mb-4 text-sm text-center">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                onClick={clearPin}
+                                className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-600 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                            >
+                                <Delete />
+                                Clear
+                            </button>
+
+                            <div className="mt-8 pt-6 border-t border-gray-200">
+                                <p className="text-xs text-gray-500 text-center mb-3">Demo PINs for testing:</p>
+                                <div className="flex flex-wrap gap-2 justify-center">
+                                    <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-mono">1234</span>
+                                    <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-mono">5678</span>
+                                    <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-mono">9999</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p className="text-center text-gray-500 text-sm mt-6">
+                            Don't have a PIN? Ask your barber to set one up!
+                        </p>
+                    </div>
+
+                    <style>{`
+                        @keyframes shake {
+                            0%, 100% { transform: translateX(0); }
+                            25% { transform: translateX(-10px); }
+                            75% { transform: translateX(10px); }
+                        }
+                        .animate-shake {
+                            animation: shake 0.3s ease-in-out;
+                        }
+                    `}</style>
+                </div>
+            );
+        }
+
         function App() {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [currentUser, setCurrentUser] = useState(null);
+            const [userPin, setUserPin] = useState('');
             const [activeTab, setActiveTab] = useState('home');
-            const [clientData] = useState({
-                name: "Marcus",
-                visits: 7,
-                streak: 4,
-                points: 340,
-                tier: "Gold",
-                nextReward: 160,
-                referrals: 2
-            });
 
             const [announcements] = useState([
                 { id: 1, title: "New Barber Alert!", text: "Marcus joins the team next Monday. Book early!", date: "Today", badge: "New" },
@@ -100,14 +334,31 @@
                 { id: 3, barber: "Jorge", style: "Burst Fade", likes: 31, image: "⭐" }
             ]);
 
+            const handleLogin = (userData, pin) => {
+                setCurrentUser(userData);
+                setUserPin(pin);
+                setIsLoggedIn(true);
+            };
+
+            const handleLogout = () => {
+                setIsLoggedIn(false);
+                setCurrentUser(null);
+                setUserPin('');
+                setActiveTab('home');
+            };
+
+            if (!isLoggedIn) {
+                return <PinLogin onLogin={handleLogin} />;
+            }
+
             const HomeView = () => (
                 <div className="space-y-6">
                     <div className="bg-gradient-to-br from-red-600 via-red-500 to-red-600 rounded-2xl p-6 text-white shadow-lg">
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <p className="text-red-100 text-sm">Welcome back,</p>
-                                <h2 className="text-2xl font-bold">{clientData.name}</h2>
-                                <p className="text-red-100 text-sm mt-1">{clientData.tier} Member</p>
+                                <h2 className="text-2xl font-bold">{currentUser.name}</h2>
+                                <p className="text-red-100 text-sm mt-1">{currentUser.tier} Member</p>
                             </div>
                             <div className="bg-white/20 rounded-full p-3">
                                 <Award />
@@ -117,15 +368,15 @@
                         <div className="grid grid-cols-3 gap-4 mt-6">
                             <div className="bg-white/10 rounded-lg p-3 backdrop-blur">
                                 <p className="text-xs text-red-100">Total Visits</p>
-                                <p className="text-2xl font-bold">{clientData.visits}</p>
+                                <p className="text-2xl font-bold">{currentUser.visits}</p>
                             </div>
                             <div className="bg-white/10 rounded-lg p-3 backdrop-blur">
                                 <p className="text-xs text-red-100">Current Streak</p>
-                                <p className="text-2xl font-bold">{clientData.streak} 🔥</p>
+                                <p className="text-2xl font-bold">{currentUser.streak} 🔥</p>
                             </div>
                             <div className="bg-white/10 rounded-lg p-3 backdrop-blur">
                                 <p className="text-xs text-red-100">Points</p>
-                                <p className="text-2xl font-bold">{clientData.points}</p>
+                                <p className="text-2xl font-bold">{currentUser.points}</p>
                             </div>
                         </div>
                     </div>
@@ -138,10 +389,10 @@
                         <div className="bg-gray-200 rounded-full h-3 mb-2">
                             <div 
                                 className="bg-gradient-to-r from-red-600 to-red-500 h-3 rounded-full transition-all"
-                                style={{ width: `${(clientData.points / (clientData.points + clientData.nextReward)) * 100}%` }}
+                                style={{ width: `${(currentUser.points / (currentUser.points + currentUser.nextReward)) * 100}%` }}
                             />
                         </div>
-                        <p className="text-sm text-gray-600">{clientData.nextReward} points to free cut</p>
+                        <p className="text-sm text-gray-600">{currentUser.nextReward} points to free cut</p>
                     </div>
 
                     <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-5 border border-red-200">
@@ -149,7 +400,7 @@
                             <div className="text-3xl">🔥</div>
                             <div className="flex-1">
                                 <h3 className="font-semibold text-gray-800 mb-1">Streak Bonus Active!</h3>
-                                <p className="text-sm text-gray-600">You're on a {clientData.streak}-visit streak. Book within 30 days to keep it going and earn 2x points!</p>
+                                <p className="text-sm text-gray-600">You're on a {currentUser.streak}-visit streak. Book within 30 days to keep it going and earn 2x points!</p>
                             </div>
                         </div>
                     </div>
@@ -182,7 +433,7 @@
                     <div className="bg-white rounded-xl p-5 shadow-md border border-gray-100">
                         <h3 className="font-semibold text-gray-800 mb-4">Your Rewards Balance</h3>
                         <div className="text-center py-6">
-                            <p className="text-5xl font-bold text-red-600 mb-2">{clientData.points}</p>
+                            <p className="text-5xl font-bold text-red-600 mb-2">{currentUser.points}</p>
                             <p className="text-gray-600">Points Available</p>
                         </div>
                     </div>
@@ -195,8 +446,15 @@
                                     <p className="font-medium text-gray-800">Free Haircut</p>
                                     <p className="text-sm text-gray-500">500 points</p>
                                 </div>
-                                <button className="bg-gray-100 text-gray-400 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed">
-                                    Need 160 more
+                                <button 
+                                    disabled={currentUser.points < 500}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                                        currentUser.points >= 500 
+                                            ? 'bg-red-600 text-white hover:bg-red-700' 
+                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    }`}
+                                >
+                                    {currentUser.points >= 500 ? 'Redeem' : `Need ${500 - currentUser.points} more`}
                                 </button>
                             </div>
 
@@ -205,8 +463,15 @@
                                     <p className="font-medium text-gray-800">$10 Off Service</p>
                                     <p className="text-sm text-gray-500">300 points</p>
                                 </div>
-                                <button className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700">
-                                    Redeem
+                                <button 
+                                    disabled={currentUser.points < 300}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                                        currentUser.points >= 300 
+                                            ? 'bg-red-600 text-white hover:bg-red-700' 
+                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    }`}
+                                >
+                                    {currentUser.points >= 300 ? 'Redeem' : `Need ${300 - currentUser.points} more`}
                                 </button>
                             </div>
 
@@ -215,8 +480,15 @@
                                     <p className="font-medium text-gray-800">Premium Product</p>
                                     <p className="text-sm text-gray-500">200 points</p>
                                 </div>
-                                <button className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700">
-                                    Redeem
+                                <button 
+                                    disabled={currentUser.points < 200}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                                        currentUser.points >= 200 
+                                            ? 'bg-red-600 text-white hover:bg-red-700' 
+                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    }`}
+                                >
+                                    {currentUser.points >= 200 ? 'Redeem' : `Need ${200 - currentUser.points} more`}
                                 </button>
                             </div>
                         </div>
@@ -254,7 +526,7 @@
                         <p className="text-red-100 mb-4">Give $15, Get 100 points when they book their first cut</p>
                         <div className="bg-white/20 rounded-lg p-4 backdrop-blur mb-4">
                             <p className="text-xs text-red-100 mb-1">Your Referral Code</p>
-                            <p className="text-2xl font-bold tracking-wider">MARCUS15</p>
+                            <p className="text-2xl font-bold tracking-wider">{currentUser.name.toUpperCase()}15</p>
                         </div>
                         <button className="w-full bg-white text-red-600 py-3 rounded-lg font-medium hover:bg-red-50">
                             Share Code
@@ -264,33 +536,37 @@
                     <div className="bg-white rounded-xl p-5 shadow-md border border-gray-100">
                         <h3 className="font-semibold text-gray-800 mb-3">Your Referrals</h3>
                         <div className="text-center py-6">
-                            <p className="text-4xl font-bold text-red-600 mb-2">{clientData.referrals}</p>
+                            <p className="text-4xl font-bold text-red-600 mb-2">{currentUser.referrals}</p>
                             <p className="text-gray-600">Friends Referred</p>
-                            <p className="text-sm text-gray-500 mt-2">You've earned 200 points from referrals!</p>
+                            <p className="text-sm text-gray-500 mt-2">You've earned {currentUser.referrals * 100} points from referrals!</p>
                         </div>
                     </div>
 
-                    <div className="space-y-3">
-                        <h3 className="font-semibold text-gray-800">Recent Referrals</h3>
-                        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <p className="font-medium text-gray-800">James R.</p>
-                                    <p className="text-sm text-gray-500">First visit completed</p>
+                    {currentUser.referrals > 0 && (
+                        <div className="space-y-3">
+                            <h3 className="font-semibold text-gray-800">Recent Referrals</h3>
+                            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <p className="font-medium text-gray-800">James R.</p>
+                                        <p className="text-sm text-gray-500">First visit completed</p>
+                                    </div>
+                                    <span className="text-green-600 font-medium">+100 pts</span>
                                 </div>
-                                <span className="text-green-600 font-medium">+100 pts</span>
                             </div>
-                        </div>
-                        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <p className="font-medium text-gray-800">Derek M.</p>
-                                    <p className="text-sm text-gray-500">First visit completed</p>
+                            {currentUser.referrals > 1 && (
+                                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="font-medium text-gray-800">Derek M.</p>
+                                            <p className="text-sm text-gray-500">First visit completed</p>
+                                        </div>
+                                        <span className="text-green-600 font-medium">+100 pts</span>
+                                    </div>
                                 </div>
-                                <span className="text-green-600 font-medium">+100 pts</span>
-                            </div>
+                            )}
                         </div>
-                    </div>
+                    )}
                 </div>
             );
 
@@ -339,16 +615,25 @@
             return (
                 <div className="max-w-md mx-auto bg-gray-50 min-h-screen">
                     <div className="bg-black px-6 py-5 sticky top-0 z-10 shadow-lg">
-                        <div className="flex items-center gap-4">
-                            <div className="relative">
-                                <div className="w-14 h-14 bg-red-600 rounded-full border-4 border-black flex items-center justify-center shadow-lg">
-                                    <span className="text-white text-xs font-bold">LOFI</span>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <div className="w-14 h-14 bg-red-600 rounded-full border-4 border-black flex items-center justify-center shadow-lg">
+                                        <span className="text-white text-xs font-bold">LOFI</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-bold text-white tracking-wide">LOFI HAIR</h1>
+                                    <p className="text-xs text-gray-400 italic">by Barber Dozens</p>
                                 </div>
                             </div>
-                            <div>
-                                <h1 className="text-2xl font-bold text-white tracking-wide">LOFI HAIR</h1>
-                                <p className="text-xs text-gray-400 italic">by Barber Dozens</p>
-                            </div>
+                            <button 
+                                onClick={handleLogout}
+                                className="text-white hover:text-red-400 transition-colors p-2"
+                                title="Logout"
+                            >
+                                <LogOut />
+                            </button>
                         </div>
                     </div>
 
