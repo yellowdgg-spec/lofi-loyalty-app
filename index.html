@@ -32,6 +32,14 @@
             border-color: #dc2626;
             background-color: #fef2f2;
         }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .animate-shake {
+            animation: shake 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body>
@@ -152,7 +160,265 @@
             </svg>
         );
 
-        function PinLogin({ onLogin }) {
+        const UserPlus = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <line x1="20" y1="8" x2="20" y2="14"></line>
+                <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+        );
+
+        const ArrowLeft = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+        );
+
+        function Registration({ onRegister, onBackToLogin }) {
+            const [formData, setFormData] = useState({
+                name: '',
+                phone: '',
+                pin: ['', '', '', ''],
+                confirmPin: ['', '', '', '']
+            });
+            const [error, setError] = useState('');
+            const [step, setStep] = useState(1);
+            const pinRefs = [useRef(), useRef(), useRef(), useRef()];
+            const confirmPinRefs = [useRef(), useRef(), useRef(), useRef()];
+
+            const handlePinInput = (index, value, isPinField = true) => {
+                if (value.length > 1) value = value.slice(-1);
+                if (!/^\d*$/.test(value)) return;
+
+                const field = isPinField ? 'pin' : 'confirmPin';
+                const refs = isPinField ? pinRefs : confirmPinRefs;
+                const newPin = [...formData[field]];
+                newPin[index] = value;
+                
+                setFormData({ ...formData, [field]: newPin });
+                setError('');
+
+                if (value && index < 3) {
+                    refs[index + 1].current?.focus();
+                }
+            };
+
+            const handleSubmitBasicInfo = (e) => {
+                e.preventDefault();
+                if (!formData.name.trim()) {
+                    setError('Please enter your name');
+                    return;
+                }
+                if (!formData.phone.trim()) {
+                    setError('Please enter your phone number');
+                    return;
+                }
+                setError('');
+                setStep(2);
+                setTimeout(() => pinRefs[0].current?.focus(), 100);
+            };
+
+            const handleCreateAccount = () => {
+                const pin = formData.pin.join('');
+                const confirmPin = formData.confirmPin.join('');
+
+                if (pin.length !== 4 || formData.pin.some(d => d === '')) {
+                    setError('Please enter a 4-digit PIN');
+                    return;
+                }
+
+                if (pin !== confirmPin) {
+                    setError('PINs do not match');
+                    return;
+                }
+
+                if (USERS_DB[pin]) {
+                    setError('This PIN is already taken. Please choose another.');
+                    return;
+                }
+
+                const newUser = {
+                    name: formData.name.trim(),
+                    phone: formData.phone.trim(),
+                    visits: 0,
+                    streak: 0,
+                    points: 50,
+                    tier: "Bronze",
+                    nextReward: 450,
+                    referrals: 0
+                };
+
+                USERS_DB[pin] = newUser;
+                onRegister(newUser, pin);
+            };
+
+            if (step === 1) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950 flex items-center justify-center p-6">
+                        <div className="w-full max-w-md">
+                            <button
+                                onClick={onBackToLogin}
+                                className="text-white hover:text-red-400 mb-6 flex items-center gap-2 transition-colors"
+                            >
+                                <ArrowLeft />
+                                Back to Login
+                            </button>
+
+                            <div className="text-center mb-12">
+                                <div className="inline-block mb-6">
+                                    <div className="w-20 h-20 bg-red-600 rounded-full border-4 border-white flex items-center justify-center shadow-2xl">
+                                        <span className="text-white text-lg font-bold">LOFI</span>
+                                    </div>
+                                </div>
+                                <h1 className="text-4xl font-bold text-white mb-2">Join LOFI HAIR</h1>
+                                <p className="text-gray-400">Create your loyalty account</p>
+                            </div>
+
+                            <div className="bg-white rounded-3xl p-8 shadow-2xl">
+                                <h2 className="text-2xl font-bold text-gray-800 mb-6">Tell us about yourself</h2>
+                                
+                                <form onSubmit={handleSubmitBasicInfo} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Full Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-red-600 focus:outline-none transition-colors"
+                                            placeholder="John Doe"
+                                            autoFocus
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Phone Number
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            value={formData.phone}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-red-600 focus:outline-none transition-colors"
+                                            placeholder="(555) 123-4567"
+                                        />
+                                    </div>
+
+                                    {error && (
+                                        <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-3 text-sm text-center">
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        type="submit"
+                                        className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+                                    >
+                                        Continue
+                                    </button>
+                                </form>
+
+                                <div className="mt-6 p-4 bg-red-50 rounded-lg">
+                                    <p className="text-sm text-gray-600 text-center">
+                                        🎉 Get <span className="font-bold text-red-600">50 welcome points</span> when you sign up!
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950 flex items-center justify-center p-6">
+                    <div className="w-full max-w-md">
+                        <button
+                            onClick={() => setStep(1)}
+                            className="text-white hover:text-red-400 mb-6 flex items-center gap-2 transition-colors"
+                        >
+                            <ArrowLeft />
+                            Back
+                        </button>
+
+                        <div className="text-center mb-8">
+                            <h1 className="text-3xl font-bold text-white mb-2">Create Your PIN</h1>
+                            <p className="text-gray-400">You'll use this to log in</p>
+                        </div>
+
+                        <div className="bg-white rounded-3xl p-8 shadow-2xl">
+                            <div className="mb-6">
+                                <p className="text-sm font-medium text-gray-700 mb-3 text-center">Enter a 4-digit PIN</p>
+                                <div className="flex justify-center gap-4">
+                                    {formData.pin.map((digit, index) => (
+                                        <input
+                                            key={index}
+                                            ref={pinRefs[index]}
+                                            type="tel"
+                                            inputMode="numeric"
+                                            maxLength="1"
+                                            value={digit}
+                                            onChange={(e) => handlePinInput(index, e.target.value, true)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Backspace' && !digit && index > 0) {
+                                                    pinRefs[index - 1].current?.focus();
+                                                }
+                                            }}
+                                            className={`pin-input ${digit ? 'filled' : ''}`}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="mb-6">
+                                <p className="text-sm font-medium text-gray-700 mb-3 text-center">Confirm your PIN</p>
+                                <div className="flex justify-center gap-4">
+                                    {formData.confirmPin.map((digit, index) => (
+                                        <input
+                                            key={index}
+                                            ref={confirmPinRefs[index]}
+                                            type="tel"
+                                            inputMode="numeric"
+                                            maxLength="1"
+                                            value={digit}
+                                            onChange={(e) => handlePinInput(index, e.target.value, false)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Backspace' && !digit && index > 0) {
+                                                    confirmPinRefs[index - 1].current?.focus();
+                                                }
+                                            }}
+                                            className={`pin-input ${digit ? 'filled' : ''}`}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-3 mb-4 text-sm text-center">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleCreateAccount}
+                                className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+                            >
+                                Create Account
+                            </button>
+
+                            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                                <p className="text-xs text-gray-600 text-center">
+                                    💡 Choose a PIN you'll remember. You'll use it every time you visit!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function PinLogin({ onLogin, onGoToRegister }) {
             const [pin, setPin] = useState(['', '', '', '']);
             const [error, setError] = useState('');
             const [isShaking, setIsShaking] = useState(false);
@@ -182,6 +448,18 @@
                     const pinCode = newPin.join('');
                     if (USERS_DB[pinCode]) {
                         onLogin(USERS_DB[pinCode], pinCode);
+                    } else if (pinCode === '0000') {
+                        const newUser = {
+                            name: "New Member",
+                            visits: 0,
+                            streak: 0,
+                            points: 0,
+                            tier: "Bronze",
+                            nextReward: 500,
+                            referrals: 0,
+                            phone: "Not set"
+                        };
+                        onLogin(newUser, pinCode);
                     } else {
                         setError('Invalid PIN. Try again.');
                         setIsShaking(true);
@@ -212,6 +490,18 @@
                     const pinCode = newPin.join('');
                     if (USERS_DB[pinCode]) {
                         onLogin(USERS_DB[pinCode], pinCode);
+                    } else if (pinCode === '0000') {
+                        const newUser = {
+                            name: "New Member",
+                            visits: 0,
+                            streak: 0,
+                            points: 0,
+                            tier: "Bronze",
+                            nextReward: 500,
+                            referrals: 0,
+                            phone: "Not set"
+                        };
+                        onLogin(newUser, pinCode);
                     } else {
                         setError('Invalid PIN. Try again.');
                         setIsShaking(true);
@@ -282,15 +572,24 @@
 
                             <button
                                 onClick={clearPin}
-                                className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-600 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                                className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-600 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors mb-3"
                             >
                                 <Delete />
                                 Clear
                             </button>
 
+                            <button
+                                onClick={onGoToRegister}
+                                className="w-full flex items-center justify-center gap-2 bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+                            >
+                                <UserPlus />
+                                Create New Account
+                            </button>
+
                             <div className="mt-8 pt-6 border-t border-gray-200">
                                 <p className="text-xs text-gray-500 text-center mb-3">Demo PINs for testing:</p>
                                 <div className="flex flex-wrap gap-2 justify-center">
+                                    <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-mono font-semibold">0000 (Default)</span>
                                     <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-mono">1234</span>
                                     <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-mono">5678</span>
                                     <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-mono">9999</span>
@@ -299,26 +598,15 @@
                         </div>
 
                         <p className="text-center text-gray-500 text-sm mt-6">
-                            Don't have a PIN? Ask your barber to set one up!
+                            First time here? Create an account to start earning rewards!
                         </p>
                     </div>
-
-                    <style>{`
-                        @keyframes shake {
-                            0%, 100% { transform: translateX(0); }
-                            25% { transform: translateX(-10px); }
-                            75% { transform: translateX(10px); }
-                        }
-                        .animate-shake {
-                            animation: shake 0.3s ease-in-out;
-                        }
-                    `}</style>
                 </div>
             );
         }
 
         function App() {
-            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [view, setView] = useState('login');
             const [currentUser, setCurrentUser] = useState(null);
             const [userPin, setUserPin] = useState('');
             const [activeTab, setActiveTab] = useState('home');
@@ -337,18 +625,36 @@
             const handleLogin = (userData, pin) => {
                 setCurrentUser(userData);
                 setUserPin(pin);
-                setIsLoggedIn(true);
+                setView('app');
+            };
+
+            const handleRegister = (userData, pin) => {
+                setCurrentUser(userData);
+                setUserPin(pin);
+                setView('app');
             };
 
             const handleLogout = () => {
-                setIsLoggedIn(false);
+                setView('login');
                 setCurrentUser(null);
                 setUserPin('');
                 setActiveTab('home');
             };
 
-            if (!isLoggedIn) {
-                return <PinLogin onLogin={handleLogin} />;
+            const goToRegister = () => {
+                setView('register');
+            };
+
+            const goToLogin = () => {
+                setView('login');
+            };
+
+            if (view === 'login') {
+                return <PinLogin onLogin={handleLogin} onGoToRegister={goToRegister} />;
+            }
+
+            if (view === 'register') {
+                return <Registration onRegister={handleRegister} onBackToLogin={goToLogin} />;
             }
 
             const HomeView = () => (
@@ -395,15 +701,17 @@
                         <p className="text-sm text-gray-600">{currentUser.nextReward} points to free cut</p>
                     </div>
 
-                    <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-5 border border-red-200">
-                        <div className="flex items-start gap-3">
-                            <div className="text-3xl">🔥</div>
-                            <div className="flex-1">
-                                <h3 className="font-semibold text-gray-800 mb-1">Streak Bonus Active!</h3>
-                                <p className="text-sm text-gray-600">You're on a {currentUser.streak}-visit streak. Book within 30 days to keep it going and earn 2x points!</p>
+                    {currentUser.streak > 0 && (
+                        <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-5 border border-red-200">
+                            <div className="flex items-start gap-3">
+                                <div className="text-3xl">🔥</div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-gray-800 mb-1">Streak Bonus Active!</h3>
+                                    <p className="text-sm text-gray-600">You're on a {currentUser.streak}-visit streak. Book within 30 days to keep it going and earn 2x points!</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     <div>
                         <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
